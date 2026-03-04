@@ -1,0 +1,23 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+aiosqlite
+asyncpg
+alembic
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+python-multipart
+Pillow
+qrcode[pil]
+aiosmtplib
+aiofiles
+python-dotenv
+numpy<2
+email-validator
+pydantic-settings
+# Reconhecimento facial (facenet-pytorch usa PyTorch, não requer compilação)
+facenet-pytorch
+torch
+torchvision
+opencv-python
