@@ -50,6 +50,18 @@ Senha:  admin123
 
 ---
 
+## 📚 Documentação
+
+### Para Desenvolvedores
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Visão geral da arquitetura do sistema, componentes, modelo de dados e fluxos
+- **[TECHNICALGUIDE.md](TECHNICALGUIDE.md)** - Guia técnico detalhado com API endpoints, serviços, troubleshooting
+- **[CHANGELOG.md](CHANGELOG.md)** - Histórico de versões e mudanças implementadas
+
+### Documentação API Interativa
+Acesse em tempo real: `http://localhost:8000/docs` (Swagger UI)
+
+---
+
 ## 👥 Perfis de Usuário
 
 | Perfil | Acesso |
