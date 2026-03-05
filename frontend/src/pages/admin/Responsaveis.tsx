@@ -33,8 +33,7 @@ export default function Responsaveis() {
   // ── modal edição ──
   const [editGrupo, setEditGrupo] = useState<Grupo | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", telefone: "", parentesco: "" });
-  const [_editNovoAluno, setEditNovoAluno] = useState("");
-  const [editAlunosParaAdicionar, setEditAlunosParaAdicionar] = useState<number[]>([]);
+const [editAlunosParaAdicionar, setEditAlunosParaAdicionar] = useState<number[]>([]);
   const [editRemoving, setEditRemoving] = useState<number[]>([]);
   const [editSearchAlunos, setEditSearchAlunos] = useState("");
   const [editLoading, setEditLoading] = useState(false);
@@ -100,8 +99,7 @@ export default function Responsaveis() {
   const openEdit = (grupo: Grupo) => {
     setEditGrupo(grupo);
     setEditForm({ nome: grupo.nome, telefone: grupo.telefone || "", parentesco: grupo.parentesco });
-    setEditNovoAluno("");
-    setEditAlunosParaAdicionar([]);
+setEditAlunosParaAdicionar([]);
     setEditRemoving([]);
     setEditSearchAlunos("");
     setEditError("");
