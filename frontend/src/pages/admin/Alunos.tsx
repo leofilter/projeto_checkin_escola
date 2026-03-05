@@ -130,40 +130,47 @@ export default function Alunos() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {alunos.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              <Baby size={40} className="mx-auto mb-2 opacity-30" />
-              <p>Nenhum aluno cadastrado</p>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-gray-600 font-medium">Nome</th>
-                  <th className="px-4 py-3 text-left text-gray-600 font-medium">Turma</th>
-                  <th className="px-4 py-3 text-left text-gray-600 font-medium">Nascimento</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {alunos.map((a) => (
-                  <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">{a.nome}</td>
-                    <td className="px-4 py-3 text-gray-600">{a.turma}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString("pt-BR") : "—"}
-                    </td>
-                    <td className="px-4 py-3 flex gap-2 justify-end">
-                      <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700"><Pencil size={15} /></button>
-                      <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600"><X size={15} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {alunos.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+            <Baby size={40} className="mx-auto mb-2 opacity-30" />
+            <p>Nenhum aluno cadastrado</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {Object.entries(
+              alunos.reduce((acc, a) => {
+                if (!acc[a.turma]) acc[a.turma] = [];
+                acc[a.turma].push(a);
+                return acc;
+              }, {} as Record<string, Aluno[]>)
+            )
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([turma, lista]) => (
+                <div key={turma} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                    <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{turma}</span>
+                    <span className="text-xs text-gray-400">{lista.length} aluno{lista.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {lista.map((a) => (
+                        <tr key={a.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-800">{a.nome}</td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                          <td className="px-4 py-3 flex gap-2 justify-end">
+                            <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700"><Pencil size={15} /></button>
+                            <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600"><X size={15} /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
     </Layout>
   );
