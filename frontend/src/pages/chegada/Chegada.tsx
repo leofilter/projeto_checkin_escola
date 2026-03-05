@@ -46,7 +46,6 @@ export default function Chegada() {
   const [responsavelInfo, setResponsavelInfo] = useState<ResponsavelInfo | null>(null);
   const [filhosSelecionados, setFilhosSelecionados] = useState<Filho[]>([]);
   const [faceResult, setFaceResult] = useState<FaceResult | null>(null);
-  const [observacao, setObservacao] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [filhosConfirmados, setFilhosConfirmados] = useState<Filho[]>([]);
 
@@ -133,9 +132,8 @@ export default function Chegada() {
     }
   };
 
-  const confirmarChegada = async (faceMatch: boolean) => {
+  const confirmarChegada = async () => {
     if (!responsavelInfo || filhosSelecionados.length === 0) return;
-    if (!faceMatch && !observacao.trim()) return;
 
     setState("confirmando");
     try {
@@ -144,9 +142,9 @@ export default function Chegada() {
           api.post("/chegada/confirmar", {
             responsavel_id: filho.responsavel_id,
             aluno_id: filho.id,
-            face_match: faceMatch,
+            face_match: true,
             face_confidence: faceResult?.confidence ?? null,
-            observacao: observacao || null,
+            observacao: null,
           })
         )
       );
@@ -165,7 +163,6 @@ export default function Chegada() {
     setResponsavelInfo(null);
     setFilhosSelecionados([]);
     setFaceResult(null);
-    setObservacao("");
     setErrorMsg("");
     setFilhosConfirmados([]);
   };
@@ -329,7 +326,7 @@ export default function Chegada() {
 
         {/* RESULTADO FACIAL */}
         {state === "face_result" && faceResult && filhosSelecionados.length > 0 && (
-          <div className={`bg-white rounded-2xl shadow-sm border-2 p-5 ${faceResult.match ? "border-green-300" : "border-orange-300"}`}>
+          <div className={`bg-white rounded-2xl shadow-sm border-2 p-5 ${faceResult.match ? "border-green-300" : "border-red-300"}`}>
             {faceResult.match ? (
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-green-100 p-2.5 rounded-full">
@@ -342,12 +339,12 @@ export default function Chegada() {
               </div>
             ) : (
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-orange-100 p-2.5 rounded-full">
-                  <AlertTriangle size={28} className="text-orange-500" />
+                <div className="bg-red-100 p-2.5 rounded-full">
+                  <AlertTriangle size={28} className="text-red-500" />
                 </div>
                 <div>
-                  <p className="font-bold text-orange-700">Não foi possível verificar</p>
-                  <p className="text-sm text-orange-600">{faceResult.reason || "Tente novamente com mais luz"}</p>
+                  <p className="font-bold text-red-700">Identidade não confirmada</p>
+                  <p className="text-sm text-red-600">{faceResult.reason || "Tente novamente com melhor iluminação"}</p>
                 </div>
               </div>
             )}
@@ -364,27 +361,18 @@ export default function Chegada() {
               </div>
             </div>
 
-            {!faceResult.match && (
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Motivo da confirmação manual *
-                </label>
-                <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  placeholder="Ex: Iluminação ruim, foto desatualizada..."
-                  value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
-                />
-              </div>
+            {faceResult.match ? (
+              <button
+                onClick={confirmarChegada}
+                className="w-full py-3 rounded-xl font-semibold text-white bg-green-600 hover:bg-green-700"
+              >
+                ✓ Confirmar Chegada
+              </button>
+            ) : (
+              <p className="text-xs text-center text-gray-500 mb-3">
+                O check-in só é permitido com reconhecimento facial aprovado.
+              </p>
             )}
-
-            <button
-              onClick={() => confirmarChegada(faceResult.match)}
-              disabled={!faceResult.match && !observacao.trim()}
-              className={`w-full py-3 rounded-xl font-semibold text-white disabled:opacity-40 ${faceResult.match ? "bg-green-600 hover:bg-green-700" : "bg-orange-500 hover:bg-orange-600"}`}
-            >
-              {faceResult.match ? "✓ Confirmar Chegada" : "Confirmar Manualmente"}
-            </button>
 
             <button
               onClick={iniciarSelfie}
