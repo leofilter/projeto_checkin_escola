@@ -3,5 +3,16 @@ providers = ["python"]
 [variables]
 NIXPACKS_PYTHON_VERSION = "3.11"
 
+[phases.setup]
+aptPkgs = [
+  "libjpeg-dev",
+  "zlib1g-dev",
+  "libpng-dev",
+  "libfreetype6-dev",
+  "libopencv-dev",
+  "libgl1",
+  "libglib2.0-0"
+]
+
 [start]
 cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
