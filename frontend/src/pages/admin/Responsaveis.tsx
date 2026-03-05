@@ -33,7 +33,7 @@ export default function Responsaveis() {
   // ── modal edição ──
   const [editGrupo, setEditGrupo] = useState<Grupo | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", telefone: "", parentesco: "" });
-  const [editNovoAluno, setEditNovoAluno] = useState("");
+  const [_editNovoAluno, setEditNovoAluno] = useState("");
   const [editAlunosParaAdicionar, setEditAlunosParaAdicionar] = useState<number[]>([]);
   const [editRemoving, setEditRemoving] = useState<number[]>([]);
   const [editSearchAlunos, setEditSearchAlunos] = useState("");
