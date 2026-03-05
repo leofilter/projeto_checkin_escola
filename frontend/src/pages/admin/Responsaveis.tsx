@@ -39,6 +39,10 @@ const [editAlunosParaAdicionar, setEditAlunosParaAdicionar] = useState<number[]>
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
+  // ── exclusão ──
+  const [deletingGrupo, setDeletingGrupo] = useState<Grupo | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // ── cadastro facial ──
   const [enrollingId, setEnrollingId] = useState<number | null>(null);
   const [enrollStatus, setEnrollStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
@@ -152,6 +156,19 @@ setEditAlunosParaAdicionar([]);
       setEditError(err.response?.data?.detail || "Erro ao salvar");
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  // ── Exclusão ──
+  const handleDeleteGrupo = async () => {
+    if (!deletingGrupo) return;
+    setDeleteLoading(true);
+    try {
+      await Promise.all(deletingGrupo.vinculos.map((v) => api.delete(`/responsaveis/${v.id}`)));
+      setDeletingGrupo(null);
+      fetchAll();
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -345,6 +362,30 @@ setEditAlunosParaAdicionar([]);
           </div>
         )}
 
+        {/* Modal de confirmação de exclusão */}
+        {deletingGrupo && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+              <div className="flex items-center gap-3 mb-3">
+                <Trash2 size={20} className="text-red-500" />
+                <h3 className="font-semibold text-gray-800">Excluir Responsável</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-1">
+                Tem certeza que deseja excluir <strong>{deletingGrupo.nome}</strong>?
+              </p>
+              <p className="text-xs text-gray-400 mb-5">
+                Todos os vínculos com alunos e o cadastro facial serão removidos permanentemente.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setDeletingGrupo(null)} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
+                <button onClick={handleDeleteGrupo} disabled={deleteLoading} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                  {deleteLoading ? "Excluindo..." : "Excluir"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal de cadastro facial */}
         {enrollingId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -440,8 +481,11 @@ setEditAlunosParaAdicionar([]);
                       <button onClick={() => { setEnrollingId(grupo.principal_id); setEnrollStatus("idle"); }} title="Cadastrar facial" className="text-purple-500 hover:text-purple-700">
                         <Camera size={15} />
                       </button>
-                      <button onClick={() => openEdit(grupo)} className="text-blue-500 hover:text-blue-700">
+                      <button onClick={() => openEdit(grupo)} title="Editar" className="text-blue-500 hover:text-blue-700">
                         <Pencil size={15} />
+                      </button>
+                      <button onClick={() => setDeletingGrupo(grupo)} title="Excluir" className="text-red-400 hover:text-red-600">
+                        <Trash2 size={15} />
                       </button>
                     </td>
                   </tr>
