@@ -17,7 +17,9 @@ numpy<2
 email-validator
 pydantic-settings
 # Reconhecimento facial (facenet-pytorch usa PyTorch, não requer compilação)
+# CPU-only wheels para reduzir tamanho da imagem (~200MB vs ~2.5GB com CUDA)
+--extra-index-url https://download.pytorch.org/whl/cpu
 facenet-pytorch
 torch
 torchvision
-opencv-python
+opencv-python-headless
