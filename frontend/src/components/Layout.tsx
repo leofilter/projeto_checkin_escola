@@ -43,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
           <p className="text-xs text-gray-500 mt-1">{user?.nome}</p>
           <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded capitalize">
-            {{ admin: "Admin", colaborador: "Colaborador", porteiro: "Porteiro" }[user?.role ?? ""] ?? user?.role}
+            {user?.role === "colaborador" ? "Colaborador" : user?.role}
           </span>
         </div>
 
