@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from database import get_db
 import models
 import schemas
@@ -62,6 +62,43 @@ async def list_usuarios(
 ):
     result = await db.execute(select(models.Usuario).order_by(models.Usuario.nome))
     return result.scalars().all()
+
+
+@router.delete("/usuarios/{user_id}")
+async def delete_usuario(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.Usuario = Depends(require_admin),
+):
+    if user_id == current_user.id:
+        raise HTTPException(400, "Você não pode excluir a sua própria conta")
+
+    result = await db.execute(select(models.Usuario).where(models.Usuario.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "Usuário não encontrado")
+
+    if user.role == "admin":
+        total = await db.execute(
+            select(func.count()).select_from(models.Usuario).where(
+                models.Usuario.role == "admin", models.Usuario.ativo == True, models.Usuario.id != user_id
+            )
+        )
+        if total.scalar() == 0:
+            raise HTTPException(400, "Não é possível excluir o último admin")
+
+    if user.role == "porteiro":
+        total = await db.execute(
+            select(func.count()).select_from(models.Usuario).where(
+                models.Usuario.role == "porteiro", models.Usuario.ativo == True, models.Usuario.id != user_id
+            )
+        )
+        if total.scalar() == 0:
+            raise HTTPException(400, "Não é possível excluir o último porteiro")
+
+    await db.delete(user)
+    await db.commit()
+    return {"status": "excluído"}
 
 
 @router.get("/me", response_model=schemas.UsuarioResponse)

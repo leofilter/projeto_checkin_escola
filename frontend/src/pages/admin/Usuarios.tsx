@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react";
-import { Plus, Users, X } from "lucide-react";
+import { Plus, Users, X, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import Layout from "../../components/Layout";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface Usuario {
   id: number; email: string; nome: string; role: string; ativo: boolean;
 }
 
 export default function Usuarios() {
+  const { user: me } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ email: "", senha: "", nome: "", role: "porteiro" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const fetchUsuarios = async () => {
     const res = await api.get("/auth/usuarios");
@@ -28,12 +31,23 @@ export default function Usuarios() {
     try {
       await api.post("/auth/usuarios", form);
       setShowForm(false);
-      setForm({ email: "", senha: "", nome: "", role: "colaborador" });
+      setForm({ email: "", senha: "", nome: "", role: "porteiro" });
       fetchUsuarios();
     } catch (err: any) {
       setError(err.response?.data?.detail || "Erro ao criar usuário");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (u: Usuario) => {
+    setDeleteError("");
+    if (!confirm(`Excluir o usuário "${u.nome}"?`)) return;
+    try {
+      await api.delete(`/auth/usuarios/${u.id}`);
+      fetchUsuarios();
+    } catch (err: any) {
+      setDeleteError(err.response?.data?.detail || "Erro ao excluir usuário");
     }
   };
 
@@ -91,6 +105,12 @@ export default function Usuarios() {
           </div>
         )}
 
+        {deleteError && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+            {deleteError}
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -98,6 +118,7 @@ export default function Usuarios() {
                 <th className="px-4 py-3 text-left text-gray-600 font-medium">Nome</th>
                 <th className="px-4 py-3 text-left text-gray-600 font-medium">E-mail</th>
                 <th className="px-4 py-3 text-left text-gray-600 font-medium">Perfil</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -107,6 +128,17 @@ export default function Usuarios() {
                   <td className="px-4 py-3 text-gray-600">{u.email}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor(u.role)}`}>{roleLabel(u.role)}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {u.id !== me?.user_id && (
+                      <button
+                        onClick={() => handleDelete(u)}
+                        className="text-red-400 hover:text-red-600"
+                        title="Excluir usuário"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
