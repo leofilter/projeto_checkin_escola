@@ -61,35 +61,18 @@ def _get_local_ip() -> str:
 async def get_qrcode_escola():
     """
     Retorna o QR Code da escola para exibir na portaria.
-    Aponta para a URL de produção no Vercel com token de 6 horas.
+    Aponta para a URL de produção no Vercel.
     """
-    from config import settings
-    from services.qrcode_service import generate_window_token, CHEGADA_BASE_URL
+    from services.qrcode_service import CHEGADA_BASE_URL
 
-    token = generate_window_token(settings.SECRET_KEY)
-    url = f"{CHEGADA_BASE_URL}?t={token}"
+    url = CHEGADA_BASE_URL
     qr_image = generate_qr_image_from_url(url)
 
     return {
         "qr_image": qr_image,
         "url": url,
         "instrucao": "Escaneie com o celular para registrar sua chegada",
-        "valido_horas": 6,
     }
-
-
-@router.get("/validar-token")
-async def validar_token(t: str):
-    """
-    Valida o token de 6 horas do QR Code da escola.
-    Rota pública — usada pela página /chegada ao carregar.
-    """
-    from config import settings
-    from services.qrcode_service import validate_window_token
-
-    if validate_window_token(t, settings.SECRET_KEY):
-        return {"valido": True}
-    raise HTTPException(401, "QR Code expirado. Solicite um novo QR Code ao porteiro.")
 
 
 def generate_qr_image_from_url(url: str) -> str:
