@@ -51,8 +51,13 @@ export default function Portaria() {
   useEffect(() => {
     Promise.all([fetchChegadas(), fetchQR()]).finally(() => setLoading(false));
     // Atualiza a lista de chegadas a cada 15 segundos
-    const interval = setInterval(fetchChegadas, 15000);
-    return () => clearInterval(interval);
+    const chegadasInterval = setInterval(fetchChegadas, 15000);
+    // Renova o QR Code a cada 6 horas (token expira com a janela de 6h)
+    const qrInterval = setInterval(fetchQR, 6 * 60 * 60 * 1000);
+    return () => {
+      clearInterval(chegadasInterval);
+      clearInterval(qrInterval);
+    };
   }, []);
 
   const hoje = new Date().toLocaleDateString("pt-BR", {
@@ -190,7 +195,8 @@ export default function Portaria() {
                   />
                 </div>
                 <p className="text-sm font-medium text-gray-600 mb-1">{qrData.instrucao}</p>
-                <p className="text-xs text-gray-400 font-mono break-all mb-4">{qrData.url}</p>
+                <p className="text-xs text-gray-400 font-mono break-all mb-2">{qrData.url}</p>
+                <p className="text-xs text-amber-600 mb-4">Atualiza automaticamente a cada 6 horas</p>
                 <a
                   href={`data:image/png;base64,${qrData.qr_image}`}
                   download="qrcode-portaria.png"

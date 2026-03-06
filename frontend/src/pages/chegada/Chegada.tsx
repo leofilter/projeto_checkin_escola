@@ -4,11 +4,13 @@
  * seleciona um ou mais filhos, tira uma selfie e confirma.
  * Funciona no celular sem login.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, CheckCircle, XCircle, AlertTriangle, RefreshCw, User, ChevronRight } from "lucide-react";
 import api from "../../services/api";
 
 type State =
+  | "validando_token"
+  | "token_invalido"
   | "cpf"
   | "loading_cpf"
   | "selecionar_filho"
@@ -41,7 +43,7 @@ interface FaceResult {
 }
 
 export default function Chegada() {
-  const [state, setState] = useState<State>("cpf");
+  const [state, setState] = useState<State>("validando_token");
   const [cpf, setCpf] = useState("");
   const [responsavelInfo, setResponsavelInfo] = useState<ResponsavelInfo | null>(null);
   const [filhosSelecionados, setFilhosSelecionados] = useState<Filho[]>([]);
@@ -51,6 +53,20 @@ export default function Chegada() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const validarToken = () => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("t");
+    if (!t) {
+      setState("token_invalido");
+      return;
+    }
+    api.get(`/chegada/validar-token?t=${encodeURIComponent(t)}`)
+      .then(() => setState("cpf"))
+      .catch(() => setState("token_invalido"));
+  };
+
+  useEffect(() => { validarToken(); }, []);
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -158,7 +174,8 @@ export default function Chegada() {
 
   const reiniciar = () => {
     stopCamera();
-    setState("cpf");
+    setState("validando_token");
+    validarToken();
     setCpf("");
     setResponsavelInfo(null);
     setFilhosSelecionados([]);
@@ -188,6 +205,28 @@ export default function Chegada() {
           <h1 className="text-xl font-bold text-gray-800">Check-in de Chegada</h1>
           <p className="text-sm text-gray-500 mt-1">Portaria Escolar</p>
         </div>
+
+        {/* VALIDANDO TOKEN */}
+        {state === "validando_token" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">Verificando QR Code...</p>
+          </div>
+        )}
+
+        {/* TOKEN INVÁLIDO */}
+        {state === "token_invalido" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6 text-center">
+            <XCircle size={40} className="text-red-500 mx-auto mb-3" />
+            <h2 className="font-semibold text-red-700 mb-2">QR Code expirado</h2>
+            <p className="text-sm text-gray-500 mb-2">
+              Este QR Code não é mais válido.
+            </p>
+            <p className="text-sm text-gray-500">
+              Peça ao porteiro para exibir o QR Code atualizado.
+            </p>
+          </div>
+        )}
 
         {/* ETAPA 1 — CPF */}
         {state === "cpf" && (
