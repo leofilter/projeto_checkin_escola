@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { QrCode, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 import api from "../../services/api";
 import Layout from "../../components/Layout";
 import { useAuth } from "../../contexts/AuthContext";
@@ -9,8 +9,6 @@ interface Autorizacao {
   id: number;
   data_autorizacao: string;
   hora_prevista: string | null;
-  qrcode_token: string;
-  qrcode_image: string | null;
   usado: boolean;
   cancelado: boolean;
   aluno: { nome: string; turma: string };
@@ -20,7 +18,6 @@ interface Autorizacao {
 export default function Dashboard() {
   const { user } = useAuth();
   const [autorizacoes, setAutorizacoes] = useState<Autorizacao[]>([]);
-  const [qrModal, setQrModal] = useState<Autorizacao | null>(null);
 
   const fetchAutorizacoes = async () => {
     const res = await api.get("/autorizacoes");
@@ -70,9 +67,9 @@ export default function Dashboard() {
 
         {autorizacoes.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-10 text-center text-gray-400">
-            <QrCode size={48} className="mx-auto mb-3 opacity-30" />
+            <Clock size={48} className="mx-auto mb-3 opacity-30" />
             <p className="font-medium">Nenhuma autorização criada</p>
-            <p className="text-sm mt-1">Crie uma autorização para gerar o QR Code de retirada</p>
+            <p className="text-sm mt-1">Crie uma autorização de retirada para o responsável</p>
             <Link to="/pais/nova-autorizacao" className="mt-4 inline-flex items-center gap-1.5 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">
               <Plus size={14} /> Criar autorização
             </Link>
@@ -105,22 +102,13 @@ export default function Dashboard() {
                   </div>
                   <div className="flex gap-2">
                     {!a.usado && !a.cancelado && (
-                      <>
-                        <button
-                          onClick={() => setQrModal(a)}
-                          className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg"
-                          title="Ver QR Code"
-                        >
-                          <QrCode size={16} />
-                        </button>
-                        <button
-                          onClick={() => cancelar(a.id)}
-                          className="p-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg"
-                          title="Cancelar"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      </>
+                      <button
+                        onClick={() => cancelar(a.id)}
+                        className="p-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg"
+                        title="Cancelar"
+                      >
+                        <XCircle size={16} />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -130,31 +118,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Modal QR Code */}
-      {qrModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setQrModal(null)}>
-          <div className="bg-white rounded-2xl p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-gray-800 mb-1">{qrModal.aluno.nome}</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              {qrModal.responsavel.nome} · {new Date(qrModal.data_autorizacao).toLocaleDateString("pt-BR")}
-              {qrModal.hora_prevista && ` às ${qrModal.hora_prevista.substring(0, 5)}`}
-            </p>
-            {qrModal.qrcode_image ? (
-              <img
-                src={`data:image/png;base64,${qrModal.qrcode_image}`}
-                alt="QR Code"
-                className="mx-auto rounded-lg border border-gray-200 w-48 h-48"
-              />
-            ) : (
-              <div className="w-48 h-48 bg-gray-100 mx-auto rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                QR Code não disponível
-              </div>
-            )}
-            <p className="text-xs text-gray-400 mt-3">Válido até às 23:59 do dia</p>
-            <button onClick={() => setQrModal(null)} className="mt-4 px-6 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700">Fechar</button>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 }

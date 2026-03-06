@@ -131,11 +131,8 @@ class AutorizacaoResponse(BaseModel):
     responsavel_id: int
     data_autorizacao: date
     hora_prevista: Optional[time]
-    qrcode_token: str
-    qrcode_image: Optional[str]
     usado: bool
     cancelado: bool
-    valido_ate: datetime
     criado_em: datetime
 
     model_config = {"from_attributes": True}
@@ -145,45 +142,12 @@ class AutorizacaoDetalhadaResponse(BaseModel):
     id: int
     data_autorizacao: date
     hora_prevista: Optional[time]
-    qrcode_token: str
-    qrcode_image: Optional[str]
     usado: bool
     cancelado: bool
-    valido_ate: datetime
     aluno: AlunoResponse
     responsavel: ResponsavelResponse
 
     model_config = {"from_attributes": True}
-
-
-# ─── Checkin / Portaria ───────────────────────────────────────────────────────
-
-class QRValidationResponse(BaseModel):
-    valido: bool
-    motivos: list[str] = []
-    autorizacao_id: Optional[int] = None
-    aluno: Optional[dict] = None
-    responsavel: Optional[dict] = None
-
-
-class FaceVerifyResponse(BaseModel):
-    match: bool
-    confidence: Optional[float] = None
-    distance: Optional[float] = None
-    reason: Optional[str] = None
-
-
-class ConfirmarCheckinRequest(BaseModel):
-    autorizacao_id: int
-    face_match: bool
-    face_confidence: Optional[float] = None
-    observacao: Optional[str] = None
-
-
-class CheckinConfirmadoResponse(BaseModel):
-    status: str
-    timestamp: str
-    registro_id: int
 
 
 # ─── Registro de Entrega ──────────────────────────────────────────────────────

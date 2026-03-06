@@ -8,7 +8,6 @@ qual filho vai buscar. Tudo sem precisar de login.
 import asyncio
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -42,56 +41,6 @@ class ChegadaResponse(BaseModel):
     timestamp: str
     aluno_nome: str
     responsavel_nome: str
-
-
-def _get_local_ip() -> str:
-    """Detecta o IP local da máquina na rede."""
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "localhost"
-
-
-@router.get("/qrcode-escola")
-async def get_qrcode_escola():
-    """
-    Retorna o QR Code da escola para exibir na portaria.
-    Aponta para a URL de produção no Vercel.
-    """
-    from services.qrcode_service import CHEGADA_BASE_URL
-
-    url = CHEGADA_BASE_URL
-    qr_image = generate_qr_image_from_url(url)
-
-    return {
-        "qr_image": qr_image,
-        "url": url,
-        "instrucao": "Escaneie com o celular para registrar sua chegada",
-    }
-
-
-def generate_qr_image_from_url(url: str) -> str:
-    import qrcode
-    import io
-    import base64
-
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
-        box_size=12,
-        border=4,
-    )
-    qr.add_data(url)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
 @router.get("/buscar-por-cpf/{cpf}", response_model=BuscarResponsavelResponse)

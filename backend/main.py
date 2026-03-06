@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import create_tables
 from config import settings
-from routes import auth, alunos, responsaveis, autorizacoes, checkin, registros, chegada
+from routes import auth, alunos, responsaveis, autorizacoes, registros, chegada
 from auth import hash_password
 from database import AsyncSessionLocal
 import models
@@ -54,7 +54,6 @@ app.include_router(auth.router)
 app.include_router(alunos.router)
 app.include_router(responsaveis.router)
 app.include_router(autorizacoes.router)
-app.include_router(checkin.router)
 app.include_router(registros.router)
 app.include_router(chegada.router)
 

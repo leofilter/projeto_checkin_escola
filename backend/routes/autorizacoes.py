@@ -7,8 +7,7 @@ from database import get_db
 import models
 import schemas
 from auth import get_current_user, require_pai, require_porteiro
-from services.qrcode_service import generate_token, generate_qr_image, calculate_expiry
-from config import settings
+from services.qrcode_service import generate_token, calculate_expiry
 
 router = APIRouter(prefix="/autorizacoes", tags=["autorizações"])
 
@@ -45,7 +44,6 @@ async def create_autorizacao(
         raise HTTPException(400, "Responsável não está autorizado para este aluno")
 
     token = generate_token()
-    qr_image = generate_qr_image(token, settings.FRONTEND_URL)
     valido_ate = calculate_expiry(data.data_autorizacao)
 
     autorizacao = models.Autorizacao(
@@ -54,7 +52,6 @@ async def create_autorizacao(
         data_autorizacao=data.data_autorizacao,
         hora_prevista=data.hora_prevista,
         qrcode_token=token,
-        qrcode_image=qr_image,
         valido_ate=valido_ate,
         criado_por=current_user.id,
     )

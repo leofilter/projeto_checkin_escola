@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { QrCode, ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import api from "../../services/api";
 import Layout from "../../components/Layout";
 
@@ -14,7 +14,7 @@ export default function NovaAutorizacao() {
   const [form, setForm] = useState({ aluno_id: "", responsavel_id: "", data_autorizacao: "", hora_prevista: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [created, setCreated] = useState<{ qrcode_image: string; token: string } | null>(null);
+  const [created, setCreated] = useState(false);
 
   useEffect(() => {
     api.get("/alunos").then((r) => setAlunos(r.data));
@@ -39,7 +39,7 @@ export default function NovaAutorizacao() {
         data_autorizacao: form.data_autorizacao,
         hora_prevista: form.hora_prevista || null,
       });
-      setCreated({ qrcode_image: res.data.qrcode_image, token: res.data.qrcode_token });
+      setCreated(true);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Erro ao criar autorização");
     } finally {
@@ -53,22 +53,12 @@ export default function NovaAutorizacao() {
         <div className="max-w-sm mx-auto text-center mt-8">
           <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800 mb-1">Autorização criada!</h2>
-          <p className="text-sm text-gray-500 mb-6">Mostre o QR Code abaixo para o responsável apresentar na portaria.</p>
-          {created.qrcode_image && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 inline-block mb-6">
-              <img
-                src={`data:image/png;base64,${created.qrcode_image}`}
-                alt="QR Code"
-                className="w-56 h-56"
-              />
-            </div>
-          )}
-          <p className="text-xs text-gray-400 mb-6">QR Code válido apenas para hoje até 23:59</p>
+          <p className="text-sm text-gray-500 mb-6">O responsável está autorizado a retirar o aluno na data indicada.</p>
           <div className="flex gap-3 justify-center">
             <button onClick={() => navigate("/pais/dashboard")} className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
               <ArrowLeft size={14} /> Voltar
             </button>
-            <button onClick={() => { setCreated(null); setForm({ aluno_id: "", responsavel_id: "", data_autorizacao: "", hora_prevista: "" }); }} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button onClick={() => { setCreated(false); setForm({ aluno_id: "", responsavel_id: "", data_autorizacao: "", hora_prevista: "" }); }} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
               Nova Autorização
             </button>
           </div>
@@ -84,10 +74,7 @@ export default function NovaAutorizacao() {
           <button onClick={() => navigate("/pais/dashboard")} className="text-gray-400 hover:text-gray-600">
             <ArrowLeft size={20} />
           </button>
-          <div className="flex items-center gap-2">
-            <QrCode size={22} className="text-blue-600" />
-            <h1 className="text-xl font-bold text-gray-800">Nova Autorização</h1>
-          </div>
+          <h1 className="text-xl font-bold text-gray-800">Nova Autorização</h1>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -160,8 +147,7 @@ export default function NovaAutorizacao() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg flex items-center justify-center gap-2"
             >
-              <QrCode size={16} />
-              {loading ? "Gerando QR Code..." : "Gerar QR Code"}
+              {loading ? "Salvando..." : "Criar Autorização"}
             </button>
           </form>
         </div>
