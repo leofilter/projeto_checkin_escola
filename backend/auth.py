@@ -73,5 +73,3 @@ def require_role(*roles: str):
 
 require_admin = require_role("admin")
 require_porteiro = require_role("admin", "porteiro")
-require_colaborador = require_role("admin", "colaborador")
-require_any = require_role("admin", "colaborador", "porteiro")

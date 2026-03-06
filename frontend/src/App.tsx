@@ -33,15 +33,15 @@ function AppRoutes() {
       <Route path="/" element={<DefaultRedirect />} />
 
       {/* Admin */}
-      <Route path="/admin/alunos" element={<PrivateRoute roles={["admin", "colaborador"]}><Alunos /></PrivateRoute>} />
-      <Route path="/admin/responsaveis" element={<PrivateRoute roles={["admin", "colaborador"]}><Responsaveis /></PrivateRoute>} />
+      <Route path="/admin/alunos" element={<PrivateRoute roles={["admin"]}><Alunos /></PrivateRoute>} />
+      <Route path="/admin/responsaveis" element={<PrivateRoute roles={["admin"]}><Responsaveis /></PrivateRoute>} />
       <Route path="/admin/usuarios" element={<PrivateRoute roles={["admin"]}><Usuarios /></PrivateRoute>} />
 
       {/* Portaria — painel de monitoramento de chegadas */}
       <Route path="/portaria" element={<PrivateRoute roles={["porteiro", "admin"]}><Portaria /></PrivateRoute>} />
 
       {/* Registros */}
-      <Route path="/registros" element={<PrivateRoute roles={["admin", "porteiro", "colaborador"]}><Registros /></PrivateRoute>} />
+      <Route path="/registros" element={<PrivateRoute roles={["admin", "porteiro"]}><Registros /></PrivateRoute>} />
     </Routes>
   );
 }

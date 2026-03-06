@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Users, Camera, CheckCircle, AlertCircle, X, Pencil, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import Layout from "../../components/Layout";
-import { useAuth } from "../../contexts/AuthContext";
 
 interface Aluno { id: number; nome: string; turma: string; }
 interface Responsavel {
@@ -22,8 +21,6 @@ interface Grupo {
 const parentescos = ["Pai", "Mãe", "Avô", "Avó", "Tio(a)", "Responsável legal", "Babá", "Motorista", "Outro"];
 
 export default function Responsaveis() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
 
@@ -205,14 +202,12 @@ setEditAlunosParaAdicionar([]);
             <Users size={22} className="text-blue-600" />
             <h1 className="text-xl font-bold text-gray-800">Responsáveis</h1>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => { setShowForm(true); setForm({ nome: "", cpf: "", telefone: "", parentesco: "", aluno_id: "" }); setFormError(""); }}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
-            >
-              <Plus size={16} /> Novo Responsável
-            </button>
-          )}
+          <button
+            onClick={() => { setShowForm(true); setForm({ nome: "", cpf: "", telefone: "", parentesco: "", aluno_id: "" }); setFormError(""); }}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
+          >
+            <Plus size={16} /> Novo Responsável
+          </button>
         </div>
 
         {/* Formulário novo responsável */}
@@ -482,19 +477,17 @@ setEditAlunosParaAdicionar([]);
                         <span className="text-xs text-gray-400">Não cadastrado</span>
                       )}
                     </td>
-                    {isAdmin && (
-                      <td className="px-4 py-3 flex gap-2 justify-end">
-                        <button onClick={() => { setEnrollingId(grupo.principal_id); setEnrollStatus("idle"); }} title="Cadastrar facial" className="text-purple-500 hover:text-purple-700">
-                          <Camera size={15} />
-                        </button>
-                        <button onClick={() => openEdit(grupo)} title="Editar" className="text-blue-500 hover:text-blue-700">
-                          <Pencil size={15} />
-                        </button>
-                        <button onClick={() => setDeletingGrupo(grupo)} title="Excluir" className="text-red-400 hover:text-red-600">
-                          <Trash2 size={15} />
-                        </button>
-                      </td>
-                    )}
+                    <td className="px-4 py-3 flex gap-2 justify-end">
+                      <button onClick={() => { setEnrollingId(grupo.principal_id); setEnrollStatus("idle"); }} title="Cadastrar facial" className="text-purple-500 hover:text-purple-700">
+                        <Camera size={15} />
+                      </button>
+                      <button onClick={() => openEdit(grupo)} title="Editar" className="text-blue-500 hover:text-blue-700">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => setDeletingGrupo(grupo)} title="Excluir" className="text-red-400 hover:text-red-600">
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

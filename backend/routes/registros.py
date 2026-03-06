@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 import models
 import schemas
-from auth import require_any
+from auth import require_porteiro
 
 router = APIRouter(prefix="/registros", tags=["registros"])
 
@@ -17,7 +17,7 @@ async def list_registros(
     aluno_id: int | None = None,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(require_any),
+    _user=Depends(require_porteiro),
 ):
     query = (
         select(models.RegistroEntrega)

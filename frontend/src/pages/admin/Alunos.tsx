@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Plus, Baby, Pencil, X } from "lucide-react";
 import api from "../../services/api";
 import Layout from "../../components/Layout";
-import { useAuth } from "../../contexts/AuthContext";
 
 interface Aluno {
   id: number;
@@ -13,8 +12,6 @@ interface Aluno {
 }
 
 export default function Alunos() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -76,14 +73,12 @@ export default function Alunos() {
             <Baby size={22} className="text-blue-600" />
             <h1 className="text-xl font-bold text-gray-800">Alunos</h1>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => { setShowForm(true); setEditingId(null); setForm({ nome: "", turma: "", data_nascimento: "", usuario_pai_id: "" }); }}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
-            >
-              <Plus size={16} /> Novo Aluno
-            </button>
-          )}
+          <button
+            onClick={() => { setShowForm(true); setEditingId(null); setForm({ nome: "", turma: "", data_nascimento: "", usuario_pai_id: "" }); }}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
+          >
+            <Plus size={16} /> Novo Aluno
+          </button>
         </div>
 
         {showForm && (
@@ -164,12 +159,10 @@ export default function Alunos() {
                           <td className="px-4 py-3 text-gray-500">
                             {a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString("pt-BR") : "—"}
                           </td>
-                          {isAdmin && (
-                            <td className="px-4 py-3 flex gap-2 justify-end">
-                              <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700"><Pencil size={15} /></button>
-                              <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600"><X size={15} /></button>
-                            </td>
-                          )}
+                          <td className="px-4 py-3 flex gap-2 justify-end">
+                            <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700"><Pencil size={15} /></button>
+                            <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600"><X size={15} /></button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

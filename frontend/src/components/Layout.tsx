@@ -20,18 +20,11 @@ const porteiroLinks = [
   { to: "/registros", label: "Registros", icon: ClipboardList },
 ];
 
-const colaboradorLinks = [
-  { to: "/admin/alunos", label: "Alunos", icon: Baby },
-  { to: "/admin/responsaveis", label: "Responsáveis", icon: Users },
-  { to: "/portaria", label: "Portaria", icon: Shield },
-  { to: "/registros", label: "Registros", icon: ClipboardList },
-];
-
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const links = user?.role === "admin" ? adminLinks : user?.role === "colaborador" ? colaboradorLinks : porteiroLinks;
+  const links = user?.role === "admin" ? adminLinks : porteiroLinks;
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -43,7 +36,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
           <p className="text-xs text-gray-500 mt-1">{user?.nome}</p>
           <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded capitalize">
-            {user?.role === "colaborador" ? "Colaborador" : user?.role}
+            {user?.role}
           </span>
         </div>
 
