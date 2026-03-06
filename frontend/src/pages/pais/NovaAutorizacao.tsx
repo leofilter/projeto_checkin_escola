@@ -33,7 +33,7 @@ export default function NovaAutorizacao() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/autorizacoes", {
+      await api.post("/autorizacoes", {
         aluno_id: Number(form.aluno_id),
         responsavel_id: Number(form.responsavel_id),
         data_autorizacao: form.data_autorizacao,
