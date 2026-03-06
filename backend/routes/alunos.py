@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 import models
 import schemas
-from auth import require_admin, require_pai, get_current_user
+from auth import require_admin, get_current_user
 from config import FOTOS_PATH
 
 router = APIRouter(prefix="/alunos", tags=["alunos"])
@@ -19,8 +19,6 @@ async def list_alunos(
     current_user: models.Usuario = Depends(get_current_user),
 ):
     query = select(models.Aluno).where(models.Aluno.ativo == True)
-    if current_user.role == "pai":
-        query = query.where(models.Aluno.usuario_pai_id == current_user.id)
     result = await db.execute(query.order_by(models.Aluno.nome))
     return result.scalars().all()
 

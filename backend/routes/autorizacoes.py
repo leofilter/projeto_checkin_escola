@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 import models
 import schemas
-from auth import get_current_user, require_pai, require_porteiro
+from auth import get_current_user, require_porteiro
 from services.qrcode_service import generate_token, calculate_expiry
 
 router = APIRouter(prefix="/autorizacoes", tags=["autorizações"])
@@ -18,19 +18,8 @@ async def create_autorizacao(
     db: AsyncSession = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "pai"):
-        raise HTTPException(403, "Apenas pais ou admin podem criar autorizações")
-
-    # Verifica se aluno pertence ao pai
-    if current_user.role == "pai":
-        result = await db.execute(
-            select(models.Aluno).where(
-                models.Aluno.id == data.aluno_id,
-                models.Aluno.usuario_pai_id == current_user.id,
-            )
-        )
-        if not result.scalar_one_or_none():
-            raise HTTPException(403, "Aluno não vinculado a este usuário")
+    if current_user.role != "admin":
+        raise HTTPException(403, "Apenas admin pode criar autorizações")
 
     # Responsável deve estar vinculado ao aluno
     result = await db.execute(
@@ -82,11 +71,6 @@ async def list_autorizacoes(
     if data:
         query = query.where(models.Autorizacao.data_autorizacao == data)
 
-    # Pais veem apenas autorizações dos seus filhos
-    if current_user.role == "pai":
-        query = query.join(models.Aluno).where(
-            models.Aluno.usuario_pai_id == current_user.id
-        )
 
     result = await db.execute(query)
     return result.scalars().all()
@@ -118,7 +102,7 @@ async def cancelar_autorizacao(
     db: AsyncSession = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "pai"):
+    if current_user.role != "admin":
         raise HTTPException(403, "Permissão negada")
 
     result = await db.execute(

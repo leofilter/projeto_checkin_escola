@@ -10,7 +10,7 @@ interface Usuario {
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ email: "", senha: "", nome: "", role: "pai" });
+  const [form, setForm] = useState({ email: "", senha: "", nome: "", role: "colaborador" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,7 +28,7 @@ export default function Usuarios() {
     try {
       await api.post("/auth/usuarios", form);
       setShowForm(false);
-      setForm({ email: "", senha: "", nome: "", role: "pai" });
+      setForm({ email: "", senha: "", nome: "", role: "colaborador" });
       fetchUsuarios();
     } catch (err: any) {
       setError(err.response?.data?.detail || "Erro ao criar usuário");
@@ -37,10 +37,10 @@ export default function Usuarios() {
     }
   };
 
-  const roleLabel = (r: string) => ({ admin: "Admin", pai: "Pai/Mãe", porteiro: "Porteiro" }[r] || r);
+  const roleLabel = (r: string) => ({ admin: "Admin", colaborador: "Colaborador", porteiro: "Porteiro" }[r] || r);
   const roleColor = (r: string) => ({
     admin: "bg-purple-100 text-purple-700",
-    pai: "bg-blue-100 text-blue-700",
+    colaborador: "bg-blue-100 text-blue-700",
     porteiro: "bg-green-100 text-green-700",
   }[r] || "bg-gray-100 text-gray-700");
 
@@ -79,7 +79,7 @@ export default function Usuarios() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Perfil *</label>
                 <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                  <option value="pai">Pai/Mãe</option>
+                  <option value="colaborador">Colaborador</option>
                   <option value="porteiro">Porteiro</option>
                   <option value="admin">Admin</option>
                 </select>
