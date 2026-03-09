@@ -1,3 +1,4 @@
+import io
 import aiofiles
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -34,6 +35,59 @@ async def create_aluno(
     await db.commit()
     await db.refresh(aluno)
     return aluno
+
+
+@router.post("/importar")
+async def importar_alunos(
+    arquivo: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    import openpyxl
+
+    if not arquivo.filename or not arquivo.filename.lower().endswith(".xlsx"):
+        raise HTTPException(400, "Envie um arquivo .xlsx válido.")
+
+    contents = await arquivo.read()
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        ws = wb.active
+    except Exception:
+        raise HTTPException(400, "Não foi possível ler o arquivo. Certifique-se de que é um .xlsx válido.")
+
+    criados = 0
+    ignorados = 0
+    erros = []
+
+    for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        nome = str(row[0]).strip() if row[0] is not None else ""
+        turma = str(row[1]).strip() if row[1] is not None else ""
+
+        if not nome or not turma:
+            if nome or turma:
+                erros.append(f"Linha {i}: nome ou turma em branco.")
+            continue
+
+        # Verifica se já existe (mesmo nome + turma, ativo)
+        result = await db.execute(
+            select(models.Aluno).where(
+                models.Aluno.nome == nome,
+                models.Aluno.turma == turma,
+                models.Aluno.ativo == True,
+            )
+        )
+        existente = result.scalar_one_or_none()
+        if existente:
+            ignorados += 1
+            continue
+
+        aluno = models.Aluno(nome=nome, turma=turma)
+        db.add(aluno)
+        criados += 1
+
+    await db.commit()
+
+    return {"criados": criados, "ignorados": ignorados, "erros": erros}
 
 
 @router.get("/{aluno_id}", response_model=schemas.AlunoResponse)

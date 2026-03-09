@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Baby, Pencil, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Baby, Pencil, X, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import api from "../../services/api";
 import Layout from "../../components/Layout";
 
@@ -18,6 +18,13 @@ export default function Alunos() {
   const [form, setForm] = useState({ nome: "", turma: "", data_nascimento: "", usuario_pai_id: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ── importação xlsx ──
+  const [showImport, setShowImport] = useState(false);
+  const [importStatus, setImportStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [importResult, setImportResult] = useState<{ criados: number; ignorados: number; erros: string[] } | null>(null);
+  const [importError, setImportError] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const fetchAlunos = async () => {
     const res = await api.get("/alunos");
@@ -59,6 +66,23 @@ export default function Alunos() {
     setShowForm(true);
   };
 
+  const handleImport = async (file: File) => {
+    setImportStatus("loading");
+    setImportResult(null);
+    setImportError("");
+    const formData = new FormData();
+    formData.append("arquivo", file);
+    try {
+      const res = await api.post("/alunos/importar", formData);
+      setImportResult(res.data);
+      setImportStatus("ok");
+      fetchAlunos();
+    } catch (err: any) {
+      setImportError(err.response?.data?.detail || "Erro ao importar arquivo.");
+      setImportStatus("error");
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Desativar este aluno?")) return;
     await api.delete(`/alunos/${id}`);
@@ -73,12 +97,20 @@ export default function Alunos() {
             <Baby size={22} className="text-blue-600" />
             <h1 className="text-xl font-bold text-gray-800">Alunos</h1>
           </div>
-          <button
-            onClick={() => { setShowForm(true); setEditingId(null); setForm({ nome: "", turma: "", data_nascimento: "", usuario_pai_id: "" }); }}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
-          >
-            <Plus size={16} /> Novo Aluno
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowImport(true); setImportStatus("idle"); setImportResult(null); setImportError(""); }}
+              className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
+            >
+              <Upload size={16} /> Adicionar base
+            </button>
+            <button
+              onClick={() => { setShowForm(true); setEditingId(null); setForm({ nome: "", turma: "", data_nascimento: "", usuario_pai_id: "" }); }}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
+            >
+              <Plus size={16} /> Novo Aluno
+            </button>
+          </div>
         </div>
 
         {showForm && (
@@ -127,6 +159,77 @@ export default function Alunos() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Modal importação xlsx */}
+        {showImport && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Adicionar base de alunos</h3>
+                <button onClick={() => setShowImport(false)}><X size={18} className="text-gray-400" /></button>
+              </div>
+
+              {importStatus === "idle" && (
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-sm text-blue-800 space-y-1">
+                    <p className="font-medium">Formato esperado do arquivo .xlsx:</p>
+                    <p>• <strong>Coluna A:</strong> Nome completo do aluno</p>
+                    <p>• <strong>Coluna B:</strong> Turma</p>
+                    <p>• A primeira linha é ignorada (cabeçalho)</p>
+                    <p>• Alunos já cadastrados com mesmo nome e turma serão ignorados</p>
+                  </div>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".xlsx"
+                    className="hidden"
+                    onChange={(e) => { if (e.target.files?.[0]) handleImport(e.target.files[0]); }}
+                  />
+                  <button
+                    onClick={() => importInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-gray-300 hover:border-green-400 rounded-xl p-6 text-center text-gray-500 hover:text-green-600 transition-colors"
+                  >
+                    <Upload size={32} className="mx-auto mb-2" />
+                    <p className="text-sm font-medium">Clique para selecionar o arquivo .xlsx</p>
+                  </button>
+                </>
+              )}
+
+              {importStatus === "loading" && (
+                <div className="text-center py-8 text-blue-600">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
+                  <p className="text-sm">Importando alunos...</p>
+                </div>
+              )}
+
+              {importStatus === "ok" && importResult && (
+                <div className="text-center py-2">
+                  <CheckCircle size={40} className="text-green-500 mx-auto mb-3" />
+                  <p className="font-semibold text-gray-800 mb-3">Importação concluída!</p>
+                  <div className="text-sm text-left bg-gray-50 rounded-lg p-4 space-y-1 mb-4">
+                    <p className="text-green-700"><strong>{importResult.criados}</strong> aluno{importResult.criados !== 1 ? "s" : ""} criado{importResult.criados !== 1 ? "s" : ""}</p>
+                    <p className="text-gray-500"><strong>{importResult.ignorados}</strong> já existiam (ignorados)</p>
+                    {importResult.erros.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-red-600 font-medium">Linhas com problema:</p>
+                        {importResult.erros.map((e, i) => <p key={i} className="text-red-500 text-xs">{e}</p>)}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => setShowImport(false)} className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">Fechar</button>
+                </div>
+              )}
+
+              {importStatus === "error" && (
+                <div className="text-center py-2">
+                  <AlertCircle size={40} className="text-red-500 mx-auto mb-3" />
+                  <p className="text-sm text-red-700 mb-4">{importError}</p>
+                  <button onClick={() => setImportStatus("idle")} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">Tentar novamente</button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

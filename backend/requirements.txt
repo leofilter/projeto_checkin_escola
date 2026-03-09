@@ -12,6 +12,7 @@ Pillow
 qrcode[pil]
 aiosmtplib
 aiofiles
+openpyxl
 python-dotenv
 numpy<2
 email-validator
