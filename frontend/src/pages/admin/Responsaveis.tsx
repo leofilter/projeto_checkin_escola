@@ -26,7 +26,9 @@ export default function Responsaveis() {
 
   // ── formulário novo responsável ──
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nome: "", cpf: "", telefone: "", parentesco: "", aluno_id: "" });
+  const [form, setForm] = useState({ nome: "", cpf: "", telefone: "", parentesco: "" });
+  const [formAlunoIds, setFormAlunoIds] = useState<number[]>([]);
+  const [formSearchAlunos, setFormSearchAlunos] = useState("");
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -83,14 +85,30 @@ const [editAlunosParaAdicionar, setEditAlunosParaAdicionar] = useState<number[]>
     }
   };
 
+  const toggleFormAluno = (alunoId: number) => {
+    setFormAlunoIds((prev) =>
+      prev.includes(alunoId) ? prev.filter((x) => x !== alunoId) : [...prev, alunoId]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formAlunoIds.length === 0) {
+      setFormError("Selecione ao menos um aluno.");
+      return;
+    }
     setFormLoading(true);
     setFormError("");
     try {
-      await api.post("/responsaveis", { ...form, aluno_id: Number(form.aluno_id) });
+      await Promise.all(
+        formAlunoIds.map((alunoId) =>
+          api.post("/responsaveis", { ...form, aluno_id: alunoId })
+        )
+      );
       setShowForm(false);
-      setForm({ nome: "", cpf: "", telefone: "", parentesco: "", aluno_id: "" });
+      setForm({ nome: "", cpf: "", telefone: "", parentesco: "" });
+      setFormAlunoIds([]);
+      setFormSearchAlunos("");
       fetchAll();
     } catch (err: any) {
       setFormError(err.response?.data?.detail || "Erro ao salvar");
@@ -203,7 +221,7 @@ setEditAlunosParaAdicionar([]);
             <h1 className="text-xl font-bold text-gray-800">Responsáveis</h1>
           </div>
           <button
-            onClick={() => { setShowForm(true); setForm({ nome: "", cpf: "", telefone: "", parentesco: "", aluno_id: "" }); setFormError(""); }}
+            onClick={() => { setShowForm(true); setForm({ nome: "", cpf: "", telefone: "", parentesco: "" }); setFormAlunoIds([]); setFormSearchAlunos(""); setFormError(""); }}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg"
           >
             <Plus size={16} /> Novo Responsável
@@ -237,16 +255,46 @@ setEditAlunosParaAdicionar([]);
                   {parentescos.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aluno *</label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={form.aluno_id} onChange={(e) => setForm({ ...form, aluno_id: e.target.value })} required>
-                  <option value="">Selecione...</option>
-                  {alunos.map((a) => <option key={a.id} value={a.id}>{a.nome} ({a.turma})</option>)}
-                </select>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alunos * {formAlunoIds.length > 0 && <span className="text-blue-600">({formAlunoIds.length} selecionado{formAlunoIds.length > 1 ? "s" : ""})</span>}
+                </label>
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome..."
+                  value={formSearchAlunos}
+                  onChange={(e) => setFormSearchAlunos(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2"
+                />
+                <div className="space-y-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50">
+                  {alunos
+                    .filter((a) => a.nome.toLowerCase().includes(formSearchAlunos.toLowerCase()))
+                    .map((a) => {
+                      const selecionado = formAlunoIds.includes(a.id);
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => toggleFormAluno(a.id)}
+                          className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border-2 transition-all ${
+                            selecionado
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 bg-white hover:border-blue-300"
+                          }`}
+                        >
+                          <input type="checkbox" checked={selecionado} readOnly className="w-4 h-4" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-800">{a.nome}</div>
+                            <div className="text-xs text-gray-500">{a.turma}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
               {formError && <p className="col-span-2 text-red-600 text-sm">{formError}</p>}
               <div className="col-span-2 flex gap-2 justify-end">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
+                <button type="button" onClick={() => { setShowForm(false); setFormAlunoIds([]); setFormSearchAlunos(""); }} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
                 <button type="submit" disabled={formLoading} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
                   {formLoading ? "Salvando..." : "Salvar"}
                 </button>
