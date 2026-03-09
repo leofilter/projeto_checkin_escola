@@ -17,6 +17,34 @@ interface Chegada {
   face_confidence: number | null;
 }
 
+interface GrupoChegada {
+  key: string;
+  hora: string;
+  responsavel: { nome: string; parentesco: string };
+  face_match: boolean;
+  face_confidence: number | null;
+  alunos: { nome: string; turma: string }[];
+}
+
+function agruparChegadas(chegadas: Chegada[]): GrupoChegada[] {
+  const map: Record<string, GrupoChegada> = {};
+  for (const c of chegadas) {
+    const key = `${c.responsavel.nome}||${c.hora}`;
+    if (!map[key]) {
+      map[key] = {
+        key,
+        hora: c.hora,
+        responsavel: c.responsavel,
+        face_match: c.face_match,
+        face_confidence: c.face_confidence,
+        alunos: [],
+      };
+    }
+    map[key].alunos.push(c.aluno);
+  }
+  return Object.values(map);
+}
+
 export default function Portaria() {
   const [chegadas, setChegadas] = useState<Chegada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,34 +113,37 @@ export default function Portaria() {
           </div>
         ) : (
           <div className="space-y-3">
-            {chegadas.map((c) => (
+            {agruparChegadas(chegadas).map((g) => (
               <div
-                key={c.id}
-                className={`bg-white rounded-xl border-2 p-4 ${c.face_match ? "border-green-200" : "border-orange-200"}`}
+                key={g.key}
+                className={`bg-white rounded-xl border-2 p-4 ${g.face_match ? "border-green-200" : "border-orange-200"}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className={`p-1.5 rounded-full mt-0.5 ${c.face_match ? "bg-green-100" : "bg-orange-100"}`}>
-                      {c.face_match ? (
+                    <div className={`p-1.5 rounded-full mt-0.5 ${g.face_match ? "bg-green-100" : "bg-orange-100"}`}>
+                      {g.face_match ? (
                         <CheckCircle size={18} className="text-green-600" />
                       ) : (
                         <AlertTriangle size={18} className="text-orange-500" />
                       )}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800">{c.aluno.nome}</p>
-                      <p className="text-sm text-gray-500">
-                        <span className="text-gray-700">{c.responsavel.nome}</span>
-                        <span className="text-gray-400"> · {c.responsavel.parentesco}</span>
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{c.aluno.turma}</p>
+                      <p className="font-semibold text-gray-800">{g.responsavel.nome}</p>
+                      <p className="text-xs text-gray-400">{g.responsavel.parentesco}</p>
+                      <div className="mt-1.5 space-y-0.5">
+                        {g.alunos.map((a, i) => (
+                          <p key={i} className="text-sm text-gray-600">
+                            {a.nome} <span className="text-xs text-gray-400">· {a.turma}</span>
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-700 text-lg">{c.hora}</p>
-                    {c.face_match ? (
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="font-bold text-gray-700 text-lg">{g.hora}</p>
+                    {g.face_match ? (
                       <p className="text-xs text-green-600">
-                        {c.face_confidence?.toFixed(0)}% facial ✓
+                        {g.face_confidence?.toFixed(0)}% facial ✓
                       </p>
                     ) : (
                       <p className="text-xs text-orange-500">Manual</p>
