@@ -7,7 +7,7 @@ qual filho vai buscar. Tudo sem precisar de login.
 """
 import asyncio
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -15,8 +15,15 @@ from pydantic import BaseModel
 from database import get_db
 import models
 from services import facial_recognition, email_service
+from services.cpf_crypto import cpf_to_hash
+from services.lgpd_audit import log_consulta_cpf
+from limiter import limiter
 
 router = APIRouter(prefix="/chegada", tags=["chegada"])
+
+
+class BuscarPorCpfRequest(BaseModel):
+    cpf: str
 
 
 class BuscarResponsavelResponse(BaseModel):
@@ -43,26 +50,36 @@ class ChegadaResponse(BaseModel):
     responsavel_nome: str
 
 
-@router.get("/buscar-por-cpf/{cpf}", response_model=BuscarResponsavelResponse)
+@router.post("/buscar-por-cpf", response_model=BuscarResponsavelResponse)
+@limiter.limit("10/minute")
 async def buscar_por_cpf(
-    cpf: str,
+    request: Request,
+    payload: BuscarPorCpfRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Etapa 1: Pai informa o CPF → retorna seu nome + filhos vinculados.
-    Rota pública (sem autenticação).
+    Rota pública (sem autenticação). CPF recebido no body (não na URL)
+    para não vazar em logs HTTP, proxies e histórico do browser.
+    Limitada a 10 tentativas/minuto por IP para prevenir enumeração de CPFs.
     """
     import re
+    cpf = payload.cpf
     cleaned = re.sub(r"\D", "", cpf)
-    cpf_formatado = f"{cleaned[:3]}.{cleaned[3:6]}.{cleaned[6:9]}-{cleaned[9:]}" if len(cleaned) == 11 else cpf
+    if len(cleaned) != 11:
+        raise HTTPException(400, "CPF inválido")
+    cpf_formatado = f"{cleaned[:3]}.{cleaned[3:6]}.{cleaned[6:9]}-{cleaned[9:]}"
+    hash_busca = cpf_to_hash(cpf_formatado)
 
     result = await db.execute(
         select(models.Responsavel)
         .options(selectinload(models.Responsavel.aluno))
-        .where(models.Responsavel.cpf == cpf_formatado, models.Responsavel.ativo == True)
+        .where(models.Responsavel.cpf_hash == hash_busca, models.Responsavel.ativo == True)
     )
     # Um CPF pode ter múltiplos registros (um por aluno)
     responsaveis = result.scalars().all()
+    ip = request.client.host if request.client else "desconhecido"
+    log_consulta_cpf(ip=ip, cpf_hash=hash_busca, encontrado=bool(responsaveis))
 
     if not responsaveis:
         raise HTTPException(404, "CPF não encontrado. Verifique com a escola se seu cadastro está completo.")

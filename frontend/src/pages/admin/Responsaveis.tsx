@@ -5,11 +5,12 @@ import Layout from "../../components/Layout";
 
 interface Aluno { id: number; nome: string; turma: string; }
 interface Responsavel {
-  id: number; nome: string; cpf: string; telefone: string | null;
+  id: number; nome: string; cpf_mascarado: string; cpf_hash: string; telefone: string | null;
   parentesco: string; aluno_id: number; face_encoding: string | null; foto_path: string | null;
 }
 interface Grupo {
-  cpf: string;
+  cpf_hash: string;
+  cpf_display: string;
   nome: string;
   telefone: string | null;
   parentesco: string;
@@ -59,27 +60,34 @@ const [editAlunosParaAdicionar, setEditAlunosParaAdicionar] = useState<number[]>
 
   useEffect(() => { fetchAll(); }, []);
 
-  // Agrupa responsáveis por CPF
+  // Agrupa responsáveis por hash do CPF (nunca expõe o CPF real no frontend)
   const grupos: Grupo[] = Object.values(
     responsaveis.reduce((acc, r) => {
-      if (!acc[r.cpf]) {
-        acc[r.cpf] = {
-          cpf: r.cpf, nome: r.nome, telefone: r.telefone,
+      if (!acc[r.cpf_hash]) {
+        acc[r.cpf_hash] = {
+          cpf_hash: r.cpf_hash, cpf_display: r.cpf_mascarado,
+          nome: r.nome, telefone: r.telefone,
           parentesco: r.parentesco, tem_facial: false,
           principal_id: r.id, vinculos: [],
         };
       }
-      acc[r.cpf].vinculos.push(r);
-      if (r.face_encoding) acc[r.cpf].tem_facial = true;
+      acc[r.cpf_hash].vinculos.push(r);
+      if (r.face_encoding) acc[r.cpf_hash].tem_facial = true;
       return acc;
     }, {} as Record<string, Grupo>)
   );
 
   // ── Novo responsável ──
-  const handleCpfBlur = () => {
+  const handleCpfBlur = async () => {
     if (!form.cpf) return;
     const cpfLimpo = form.cpf.replace(/\D/g, "");
-    const existente = responsaveis.find((r) => r.cpf.replace(/\D/g, "") === cpfLimpo);
+    if (cpfLimpo.length !== 11) return;
+    // Formata CPF igual ao backend para que o hash bata
+    const cpfFormatado = `${cpfLimpo.slice(0,3)}.${cpfLimpo.slice(3,6)}.${cpfLimpo.slice(6,9)}-${cpfLimpo.slice(9)}`;
+    const encoded = new TextEncoder().encode(cpfFormatado);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+    const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+    const existente = responsaveis.find((r) => r.cpf_hash === hash);
     if (existente) {
       setForm((f) => ({ ...f, nome: existente.nome, telefone: existente.telefone || "", parentesco: existente.parentesco }));
     }
@@ -155,12 +163,14 @@ setEditAlunosParaAdicionar([]);
       // Remove vínculos marcados
       await Promise.all(editRemoving.map((id) => api.delete(`/responsaveis/${id}`)));
 
-      // Adiciona novos vínculos para todos os alunos selecionados
+      // Adiciona novos vínculos para todos os alunos selecionados.
+      // Usa responsavel_principal_id — o backend resolve o CPF internamente,
+      // sem precisar retransmitir o dado pessoal pelo frontend.
       await Promise.all(
         editAlunosParaAdicionar.map((alunoId) =>
           api.post("/responsaveis", {
             nome: editForm.nome,
-            cpf: editGrupo.cpf,
+            responsavel_principal_id: editGrupo.principal_id,
             telefone: editForm.telefone,
             parentesco: editForm.parentesco,
             aluno_id: alunoId,
@@ -499,12 +509,12 @@ setEditAlunosParaAdicionar([]);
               </thead>
               <tbody>
                 {grupos.map((grupo) => (
-                  <tr key={grupo.cpf} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={grupo.cpf_hash} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-800">{grupo.nome}</div>
                       {grupo.telefone && <div className="text-xs text-gray-400">{grupo.telefone}</div>}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{grupo.cpf}</td>
+                    <td className="px-4 py-3 text-gray-600">{grupo.cpf_display}</td>
                     <td className="px-4 py-3 text-gray-600">{grupo.parentesco}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">

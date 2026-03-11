@@ -71,7 +71,7 @@ export default function Chegada() {
 
     setState("loading_cpf");
     try {
-      const res = await api.get(`/chegada/buscar-por-cpf/${cpf}`);
+      const res = await api.post("/chegada/buscar-por-cpf", { cpf });
       setResponsavelInfo(res.data);
       setFilhosSelecionados([]);
       setState("selecionar_filho");

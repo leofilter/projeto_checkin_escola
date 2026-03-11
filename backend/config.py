@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     MEDIA_DIR: str = "./media"
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Chave Fernet (AES-128-CBC) para criptografia reversível do CPF (LGPD).
+    # Gere com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # e adicione ao .env: CPF_ENCRYPTION_KEY=<chave gerada>
+    CPF_ENCRYPTION_KEY: str = ""
+
     class Config:
         env_file = ".env"
 

@@ -1,6 +1,6 @@
 import json
 import aiofiles
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -11,12 +11,15 @@ import schemas
 from auth import require_admin, require_porteiro, get_current_user
 from config import FOTOS_PATH
 from services import facial_recognition
+from services.cpf_crypto import cpf_to_hash, cpf_encrypt
+from services.lgpd_audit import log_listagem, log_acesso, log_criacao, log_edicao, log_exclusao
 
 router = APIRouter(prefix="/responsaveis", tags=["responsaveis"])
 
 
 @router.get("", response_model=list[schemas.ResponsavelResponse])
 async def list_responsaveis(
+    request: Request,
     aluno_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
@@ -25,19 +28,36 @@ async def list_responsaveis(
     if aluno_id:
         query = query.where(models.Responsavel.aluno_id == aluno_id)
     result = await db.execute(query.order_by(models.Responsavel.nome))
+    ip = request.client.host if request.client else "desconhecido"
+    log_listagem(ip=ip, usuario_id=_user.id, recurso="responsaveis")
     return result.scalars().all()
 
 
 @router.post("", response_model=schemas.ResponsavelResponse)
 async def create_responsavel(
+    request: Request,
     data: schemas.ResponsavelCreate,
     db: AsyncSession = Depends(get_db),
     _admin=Depends(require_admin),
 ):
+    # Resolve CPF: direto ou via ID de referência (sem precisar reenviar o CPF do frontend)
+    cpf = data.cpf
+    hash_ref: str | None = None
+    if not cpf and data.responsavel_principal_id:
+        ref_result = await db.execute(
+            select(models.Responsavel).where(models.Responsavel.id == data.responsavel_principal_id)
+        )
+        ref_resp = ref_result.scalar_one_or_none()
+        if not ref_resp:
+            raise HTTPException(404, "Responsável de referência não encontrado")
+        hash_ref = ref_resp.cpf_hash
+    else:
+        hash_ref = cpf_to_hash(cpf)
+
     # Impede vincular o mesmo CPF duas vezes ao mesmo aluno
     existing = await db.execute(
         select(models.Responsavel).where(
-            models.Responsavel.cpf == data.cpf,
+            models.Responsavel.cpf_hash == hash_ref,
             models.Responsavel.aluno_id == data.aluno_id,
             models.Responsavel.ativo == True,
         )
@@ -45,12 +65,19 @@ async def create_responsavel(
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Este responsável já está vinculado a este aluno")
 
-    resp = models.Responsavel(**data.model_dump())
+    resp = models.Responsavel(
+        nome=data.nome,
+        cpf_hash=hash_ref,
+        cpf_enc=cpf_encrypt(cpf) if cpf else (ref_resp.cpf_enc if data.responsavel_principal_id else ""),
+        telefone=data.telefone,
+        parentesco=data.parentesco,
+        aluno_id=data.aluno_id,
+    )
 
     # Se já existe outro registro com este CPF, copia o face_encoding e foto_path
     outros = await db.execute(
         select(models.Responsavel).where(
-            models.Responsavel.cpf == data.cpf,
+            models.Responsavel.cpf_hash == hash_ref,
             models.Responsavel.face_encoding.is_not(None),
         )
     )
@@ -62,11 +89,14 @@ async def create_responsavel(
     db.add(resp)
     await db.commit()
     await db.refresh(resp)
+    ip = request.client.host if request.client else "desconhecido"
+    log_criacao(ip=ip, usuario_id=_admin.id, recurso="responsaveis", cpf_hash=hash_ref)
     return resp
 
 
 @router.get("/{responsavel_id}", response_model=schemas.ResponsavelResponse)
 async def get_responsavel(
+    request: Request,
     responsavel_id: int,
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
@@ -77,11 +107,14 @@ async def get_responsavel(
     resp = result.scalar_one_or_none()
     if not resp:
         raise HTTPException(404, "Responsável não encontrado")
+    ip = request.client.host if request.client else "desconhecido"
+    log_acesso(ip=ip, usuario_id=_user.id, recurso="responsaveis", recurso_id=responsavel_id)
     return resp
 
 
 @router.put("/{responsavel_id}", response_model=schemas.ResponsavelResponse)
 async def update_responsavel(
+    request: Request,
     responsavel_id: int,
     data: schemas.ResponsavelUpdate,
     db: AsyncSession = Depends(get_db),
@@ -101,7 +134,7 @@ async def update_responsavel(
     # Propaga nome/telefone/parentesco para todos os registros com mesmo CPF
     outros_result = await db.execute(
         select(models.Responsavel).where(
-            models.Responsavel.cpf == resp.cpf,
+            models.Responsavel.cpf_hash == resp.cpf_hash,
             models.Responsavel.id != responsavel_id,
         )
     )
@@ -111,6 +144,8 @@ async def update_responsavel(
 
     await db.commit()
     await db.refresh(resp)
+    ip = request.client.host if request.client else "desconhecido"
+    log_edicao(ip=ip, usuario_id=_admin.id, recurso="responsaveis", recurso_id=responsavel_id)
     return resp
 
 
@@ -160,7 +195,7 @@ async def enroll_face(
 
     # Propaga encoding para todos os registros com o mesmo CPF
     todos = await db.execute(
-        select(models.Responsavel).where(models.Responsavel.cpf == resp.cpf)
+        select(models.Responsavel).where(models.Responsavel.cpf_hash == resp.cpf_hash)
     )
     for r in todos.scalars().all():
         r.face_encoding = encoding_json
@@ -193,6 +228,7 @@ async def get_foto(
 
 @router.delete("/{responsavel_id}")
 async def delete_responsavel(
+    request: Request,
     responsavel_id: int,
     db: AsyncSession = Depends(get_db),
     _admin=Depends(require_admin),
@@ -205,4 +241,6 @@ async def delete_responsavel(
         raise HTTPException(404, "Responsável não encontrado")
     resp.ativo = False
     await db.commit()
+    ip = request.client.host if request.client else "desconhecido"
+    log_exclusao(ip=ip, usuario_id=_admin.id, recurso="responsaveis", recurso_id=responsavel_id)
     return {"status": "desativado"}

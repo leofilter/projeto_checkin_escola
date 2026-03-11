@@ -51,7 +51,8 @@ class Responsavel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nome: Mapped[str] = mapped_column(String(100), nullable=False)
-    cpf: Mapped[str] = mapped_column(String(14), nullable=False, index=True)
+    cpf_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    cpf_enc: Mapped[str] = mapped_column(Text, nullable=False)
     telefone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     parentesco: Mapped[str] = mapped_column(String(50), nullable=False)
     foto_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
